@@ -1,5 +1,3 @@
-# graph_zombie_repo
-repo para la calse de ia_p25 itam, contiene el simulador de zombies para grafos
 # Zombie Evacuation Challenge
 
 ## The Situation
@@ -73,5 +71,3 @@ Your policy will be tested across multiple scenarios with:
 The success of your evacuation policy directly impacts the survival chances of rescue teams operating in the field. Each failed mission represents a potential loss of life, while each successful evacuation means survivors brought to safety.
 
 Can you develop a policy that consistently guides teams to safety through this hazardous urban environment? 
-
-Read the rest of the documentation in `docs/`
