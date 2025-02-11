@@ -1,5 +1,5 @@
 # Desafío de Evacuación Zombie
-Lea docs/
+
 ## La Situación
 
 Es el año 2025. Un incidente catastrófico en una instalación secreta de investigación ha llevado a una crisis sin precedentes en la ciudad. La combinación de una fuga de radiación y un patógeno experimental ha resultado en un entorno peligroso lleno de zonas radiactivas e individuos infectados que exhiben comportamiento agresivo (coloquialmente referidos como "zombies" por los equipos de evacuación).
