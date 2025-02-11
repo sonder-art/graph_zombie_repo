@@ -11,8 +11,11 @@ def visualize_simulation(city: CityGraph, proxy_data: ProxyData,
                         policy_result: PolicyResult, sim_result: SimulationResult):
     """
     Visualize a single evacuation mission with environmental data
+    
+    Returns:
+        matplotlib.figure.Figure: The generated figure
     """
-    plt.figure(figsize=(15, 12))
+    fig = plt.figure(figsize=(15, 12))
     
     # Create graph from city data
     G = city.graph
@@ -206,4 +209,6 @@ def visualize_simulation(city: CityGraph, proxy_data: ProxyData,
                 y=0.95)
     
     plt.tight_layout()
-    plt.show() 
+    plt.show()
+    
+    return fig 

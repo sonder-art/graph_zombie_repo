@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import Dict, List
 import os
+import pandas as pd
+from matplotlib.table import Table
 
 def save_plot(plt, name: str, policy_name: str, experiment_id: str):
     """
@@ -337,6 +339,125 @@ def plot_resource_impact(results: Dict, policy_name: str, experiment_id: str):
     
     save_plot(plt, "resource_impact", policy_name, experiment_id)
 
+def plot_metrics_summary(results: Dict, policy_name: str, experiment_id: str):
+    """
+    Create a simple table visualization of key metrics.
+    Shows core performance indicators in an easy-to-read format.
+    """
+    plt.figure(figsize=(10, 6))
+    
+    # Prepare data for the table
+    data = [
+        ['Success Rate', f"{results['success_rate']*100:.1f}%"],
+        ['Average Time', f"{results['avg_time']:.2f} units"],
+        ['Average Path Length', f"{results['avg_path_length']:.2f} units"]
+    ]
+    
+    # Add resource metrics
+    for resource_type, metrics in results['resource_metrics'].items():
+        allocated = metrics['avg_allocated']
+        used = allocated - metrics['avg_remaining']
+        efficiency = (used / allocated * 100) if allocated > 0 else 0
+        data.append([
+            f"{resource_type.replace('_', ' ').title()} Efficiency",
+            f"{efficiency:.1f}% ({used:.1f}/{allocated:.1f})"
+        ])
+
+    # Create table
+    ax = plt.gca()
+    ax.axis('off')
+    table = Table(ax, bbox=[0.1, 0.1, 0.8, 0.8])
+    
+    # Add cells
+    n_rows = len(data)
+    width = 0.4
+    height = 0.8 / n_rows
+    
+    for i, (metric, value) in enumerate(data):
+        table.add_cell(i, 0, width, height, text=metric,
+                      loc='left', facecolor='lightgray')
+        table.add_cell(i, 1, width, height, text=value,
+                      loc='right')
+    
+    ax.add_table(table)
+    plt.title('Mission Performance Summary\nKey Metrics Overview', pad=20)
+    
+    save_plot(plt, "metrics_summary", policy_name, experiment_id)
+
+def plot_metric_correlations(results: Dict, policy_name: str, experiment_id: str):
+    """
+    Create a correlation matrix between key performance metrics and environmental factors.
+    Shows relationships between mission outcomes and various indicators.
+    """
+    plt.figure(figsize=(12, 10))
+    
+    # Prepare correlation data
+    metrics_by_size = {
+        size: {
+            'success_rate': data['success_rate'],
+            'avg_time': data['avg_time'],
+            'avg_path_length': data['avg_path_length'],
+            'resource_efficiency': sum(
+                m['avg_used'] / m['avg_allocated']
+                if m['avg_allocated'] > 0 else 0
+                for m in data['resource_metrics'].values()
+            ) / len(data['resource_metrics'])
+        }
+        for size, data in results['by_size'].items()
+    }
+    
+    # Add environmental indicators
+    for size, data in results['by_size'].items():
+        # Add node indicators
+        for indicator, value in data['proxy_data']['nodes'].items():
+            metrics_by_size[size][f'node_{indicator}'] = value
+        
+        # Add edge indicators
+        for indicator, value in data['proxy_data']['edges'].items():
+            metrics_by_size[size][f'edge_{indicator}'] = value
+    
+    # Convert to DataFrame
+    df = pd.DataFrame.from_dict(metrics_by_size, orient='index')
+    
+    # Calculate correlation matrix
+    core_metrics = ['success_rate', 'avg_time', 'avg_path_length', 'resource_efficiency']
+    correlation_matrix = []
+    labels_y = []
+    
+    for metric in core_metrics:
+        correlations = []
+        for col in df.columns:
+            if col not in core_metrics:  # Correlate with environmental indicators
+                corr = df[metric].corr(df[col])
+                if not pd.isna(corr):
+                    correlations.append(corr)
+                    if metric == core_metrics[0]:  # Only add label once
+                        labels_y.append(col.replace('node_', 'Node: ').replace('edge_', 'Edge: ')
+                                     .replace('_', ' ').title())
+    
+        correlation_matrix.append(correlations)
+    
+    # Plot correlation matrix
+    im = plt.imshow(correlation_matrix, aspect='auto', cmap='RdYlBu')
+    plt.colorbar(im, label='Correlation Strength')
+    
+    # Add labels
+    plt.yticks(range(len(core_metrics)), 
+              [m.replace('_', ' ').title() for m in core_metrics])
+    plt.xticks(range(len(labels_y)), labels_y, rotation=45, ha='right')
+    
+    # Add correlation values
+    for i in range(len(core_metrics)):
+        for j in range(len(labels_y)):
+            text = f'{correlation_matrix[i][j]:.2f}'
+            plt.text(j, i, text, ha='center', va='center')
+    
+    plt.title('Core Metrics vs Environmental Indicators\n' +
+              'Correlation Analysis of Mission Performance Factors')
+    
+    plt.tight_layout()
+    save_plot(plt, "metric_correlations", policy_name, experiment_id)
+
 def generate_all_visualizations(results: Dict, policy_name: str, experiment_id: str):
     """Generate and save all visualization types with explanations"""
     print("\nGenerating Visualizations...")
@@ -382,6 +503,20 @@ def generate_all_visualizations(results: Dict, policy_name: str, experiment_id: 
     print("- Shows how environmental factors affect resource needs")
     print("- Helps predict resource requirements")
     print("- Identifies key resource drivers")
+    
+    # Metrics Summary
+    print("\n7. Metrics Summary Table:")
+    plot_metrics_summary(results, policy_name, experiment_id)
+    print("- Shows key performance indicators")
+    print("- Provides quick overview of mission outcomes")
+    print("- Highlights resource utilization efficiency")
+    
+    # Metric Correlations
+    print("\n8. Metric Correlations Analysis:")
+    plot_metric_correlations(results, policy_name, experiment_id)
+    print("- Shows relationships between core metrics and environmental factors")
+    print("- Helps identify key performance drivers")
+    print("- Reveals environmental impact on mission success")
     
     vis_path = os.path.join("data/policies", policy_name, "experiments", experiment_id, "visualizations")
     print(f"\nAll visualizations have been saved to '{vis_path}/'")

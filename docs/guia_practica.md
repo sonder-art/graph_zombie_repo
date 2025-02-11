@@ -76,6 +76,10 @@ data/policies/EvacuationPolicy/experiments/exp_<timestamp>/
 ```bash
 python3 run_simulation.py
 ```
+
+Los inputs estan definidos en este lugar. Las tres cosas que va a recibir tu policy es city, proxy_data, max_resources
+![input_policy](image.png)
+
 - Obtén retroalimentación rápida
 - Depura situaciones específicas
 - Comprende casos de fallo

@@ -1,6 +1,8 @@
 from public.tools.simulator import Simulator
 from public.student_code.solution import EvacuationPolicy
 from public.visualization.single_run import visualize_simulation
+import os
+import matplotlib.pyplot as plt
 
 def main():
     # Create simulator with policy name
@@ -11,7 +13,7 @@ def main():
     )
     
     # Start an experiment for this run
-    sim.data_manager.start_experiment({
+    experiment_id = sim.data_manager.start_experiment({
         'type': 'single_run',
         'n_nodes': 30,
         'seed': 42
@@ -24,10 +26,17 @@ def main():
     result, city, proxy_data = sim.run_simulation(policy)
     
     # Get the policy result again for visualization
-    policy_result = policy.plan_evacuation(city, proxy_data, max_resources=10)  # This will be ignored as max_resources comes from city
+    policy_result = policy.plan_evacuation(city, proxy_data, max_resources=10)
     
-    # Visualize results
-    visualize_simulation(city, proxy_data, policy_result, result)
+    # Create visualization directory
+    vis_dir = os.path.join('data/policies/EvacuationPolicy/experiments', 
+                          experiment_id, 'visualizations')
+    os.makedirs(vis_dir, exist_ok=True)
+    
+    # Visualize and save results
+    fig = visualize_simulation(city, proxy_data, policy_result, result)
+    plt.savefig(os.path.join(vis_dir, 'city_simulation.png'))
+    plt.close()
     
     # Print detailed results
     print("\nSimulation Results:")
@@ -40,6 +49,8 @@ def main():
     print("\nResource Usage:")
     for resource_type, usage in result.resources.to_dict()['efficiency'].items():
         print(f"{resource_type.replace('_', ' ').title()}: {usage*100:.1f}% efficient")
+    
+    print(f"\nVisualization saved to: {vis_dir}/city_simulation.png")
 
 if __name__ == "__main__":
     main() 
