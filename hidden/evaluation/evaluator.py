@@ -13,13 +13,15 @@ class PathEvaluator:
         if seed is not None:
             random.seed(seed)
             
-    def _check_resource_usage(self, path: List[int], resources: Dict[str, int]) -> Tuple[bool, str, ResourceUsage, List[Tuple[int, str]]]:
+    def _check_resource_usage(self, path: List[int], resources: Dict[str, int], max_resources:int) -> Tuple[bool, str, ResourceUsage, List[Tuple[int, str]]]:
         """Check if resources are sufficient for the given path."""
         resource_usage = ResourceUsage()
         events = []  # List of (step_number, event_description)
         
         # Initialize allocated resources
+        total_allocated_resources = 0
         for rt, amount in resources.items():
+            total_allocated_resources+= amount
             resource_usage.allocated[rt] = amount
             resource_usage.used[rt] = 0
             resource_usage.needed[rt] = 0
@@ -27,7 +29,14 @@ class PathEvaluator:
         
         # Log mission start
         events.append((0, f"Mission started at node {path[0]}"))
-        
+        if amount> max_resources:
+            events.append((1, f'Mission Failed, you exceeded the amout of allowed resources and your team was killed by the population due to their greed.'))
+            for rt, amount in resources.items(): # Loose all the reources
+                resource_usage.allocated[rt] = amount
+                resource_usage.used[rt] = amount
+                resource_usage.needed[rt] = 0
+                resource_usage.effective_uses[rt] = 0
+            return False, f"Your team was killed due to excesive greed by the population in at the start", resource_usage, events
         # Track resource usage at each node
         for i, node in enumerate(path, 1):
             events.append((i, f"Arrived at node {node}"))
@@ -104,7 +113,7 @@ class PathEvaluator:
         return True, "Successfully reached extraction point", resource_usage, events
         
     def evaluate(self, path: List[int], resources: Dict[str, int],
-                city: CityGraph, true_state: Dict) -> SimulationResult:
+                city: CityGraph, true_state: Dict, max_resources:int=10000) -> SimulationResult:
         """
         Evaluate a proposed evacuation plan
         
@@ -134,7 +143,7 @@ class PathEvaluator:
         reaches_extraction = path[-1] in city.extraction_nodes
         
         # Check resource usage
-        resources_sufficient, failure_reason, resource_usage, events = self._check_resource_usage(path, resources)
+        resources_sufficient, failure_reason, resource_usage, events = self._check_resource_usage(path, resources, max_resources)
             
         # Determine success and failure reason
         success = reaches_extraction and resources_sufficient
