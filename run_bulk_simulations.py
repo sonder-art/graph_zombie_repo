@@ -1,3 +1,15 @@
+# Global configuration for visualization options
+SKIP_CITY_ANALYSIS = True
+POLICY_NAME =  "EvacuationPolicy"
+CONFIG = {
+        'node_range': {
+            'min': 5,
+            'max': 5
+        },
+        'n_runs': 2,  # Total number of cities to simulate
+        'base_seed': 42  # For reproducibility
+    }
+
 from public.tools.run_bulk import BulkRunner
 from public.student_code.solution import EvacuationPolicy
 from public.visualization.bulk_analysis import generate_all_visualizations
@@ -9,20 +21,17 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description='Run bulk simulations')
     parser.add_argument('--skip-city-analysis', action='store_true',
-                      help='Skip individual city analysis to save time')
+                        help='Skip individual city analysis to save time')
     args = parser.parse_args()
-
-    # Configuration for bulk runs
-    config = {
-        'node_range': {
-            'min': 20,
-            'max': 50
-        },
-        'n_runs': 10,  # Total number of cities to simulate
-        'base_seed': 42  # For reproducibility
-    }
     
-    policy_name = "EvacuationPolicy"
+    # Determine whether to skip city analysis:
+    # It will be skipped if either the command-line flag is provided or the global variable is True.
+    skip_city_analysis = args.skip_city_analysis or SKIP_CITY_ANALYSIS
+    
+    # Configuration for bulk runs
+    config = CONFIG
+    
+    policy_name = POLICY_NAME
     
     # Create bulk runner
     runner = BulkRunner(
@@ -61,7 +70,7 @@ def main():
     print("\nGenerating aggregated analysis data...")
     generate_aggregated_data(results, policy_name, experiment_id)
     
-    if not args.skip_city_analysis:
+    if not skip_city_analysis:
         print("\nAnalyzing individual city scenarios...")
         exp_dir = os.path.join('data', 'policies', policy_name, 'experiments', experiment_id, 'cities')
         for city_dir in os.listdir(exp_dir):
@@ -74,4 +83,4 @@ def main():
     print(f"data/policies/{policy_name}/experiments/{experiment_id}/")
 
 if __name__ == "__main__":
-    main() 
+    main()
