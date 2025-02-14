@@ -53,9 +53,9 @@ class Simulator:
         # 2. Generate true state and proxy data
         true_state = self.true_state_gen.generate(city)
         proxy_data = self.proxy_gen.generate(city, true_state)
-        
+        pass_city = city.copy()
         # 3. Get policy decision
-        policy_result = policy.plan_evacuation(city, proxy_data, max_resources)
+        policy_result = policy.plan_evacuation(pass_city, proxy_data, max_resources)
         
         # 4. Evaluate
         result = self.evaluator.evaluate(
