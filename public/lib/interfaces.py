@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple
 import networkx as nx
+import copy
 
 class ResourceTypes:
     """Constants for resource types"""
@@ -13,28 +14,38 @@ class ResourceTypes:
 
 class CityGraph:
     """Represents the city layout with nodes and edges"""
+
     def __init__(self):
         self.graph: nx.Graph = nx.Graph()
         self.starting_node: int = None
         self.extraction_nodes: List[int] = []
-        
+
     def add_node(self, node_id: int, pos: Tuple[float, float]):
         """Add a node with its position"""
         self.graph.add_node(node_id, pos=pos)
-        
+
     def add_edge(self, node1: int, node2: int, weight: float):
         """Add an edge between nodes with its weight (distance)"""
         self.graph.add_edge(node1, node2, weight=weight)
-        
+
     def set_starting_node(self, node_id: int):
         """Set the evacuation starting point"""
         if node_id in self.graph.nodes:
             self.starting_node = node_id
-            
+
     def add_extraction_node(self, node_id: int):
         """Add a possible extraction point"""
         if node_id in self.graph.nodes:
             self.extraction_nodes.append(node_id)
+
+    def copy(self) -> "CityGraph":
+        """Creates a deep copy of the CityGraph object"""
+        new_copy = CityGraph()
+        new_copy.graph = self.graph.copy()  # Deep copy the graph
+        new_copy.starting_node = self.starting_node
+        new_copy.extraction_nodes = self.extraction_nodes.copy()  # Copy list to avoid mutation
+        return new_copy
+
 
 class ProxyData:
     """Contains proxy indicators for nodes and edges"""
