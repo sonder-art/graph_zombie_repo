@@ -13,7 +13,8 @@ class PathEvaluator:
         if seed is not None:
             random.seed(seed)
             
-    def _check_resource_usage(self, path: List[int], resources: Dict[str, int], max_resources:int) -> Tuple[bool, str, ResourceUsage, List[Tuple[int, str]]]:
+    def _check_resource_usage(self, path: List[int], resources: Dict[str, int], max_resources:int,
+                              unexisting_edge = None) -> Tuple[bool, str, ResourceUsage, List[Tuple[int, str]]]:
         """Check if resources are sufficient for the given path."""
         resource_usage = ResourceUsage()
         events = []  # List of (step_number, event_description)
@@ -29,7 +30,7 @@ class PathEvaluator:
         
         # Log mission start
         events.append((0, f"Mission started at node {path[0]}"))
-        if amount> max_resources:
+        if total_allocated_resources > max_resources:
             events.append((1, f'Mission Failed, you exceeded the amout of allowed resources and your team was killed by the population due to their greed.'))
             for rt, amount in resources.items(): # Loose all the reources
                 resource_usage.allocated[rt] = amount
@@ -37,9 +38,22 @@ class PathEvaluator:
                 resource_usage.needed[rt] = 0
                 resource_usage.effective_uses[rt] = 0
             return False, f"Your team was killed due to excesive greed by the population in at the start", resource_usage, events
+        
+        
         # Track resource usage at each node
         for i, node in enumerate(path, 1):
             events.append((i, f"Arrived at node {node}"))
+           
+            
+            if (unexisting_edge):
+                n1, n2 = path[i], path[i+1]
+                if (unexisting_edge[0]==n1) and (unexisting_edge[1]==n2):
+                    events.append((i, f"Unexistent path from node {n1} to {n2}"))
+                    for rt, amount in resources.items(): # Loose all the reources
+                        resource_usage.allocated[rt] = amount
+                        resource_usage.used[rt] = amount
+                    return False, f"Unexistent path from node {n1} to {n2}", resource_usage, events
+            
             
             # Check radiation suit usage
             if self.radiation[node] > 0.35:  # Lowered from 0.4
@@ -60,9 +74,9 @@ class PathEvaluator:
                     events.append((i, f"TEAM DIED - Ran out of ammo"))
                     return False, f"Ran out of ammo at node {node}", resource_usage, events
                 # 35% chance ammo fails to clear zombies (increased from 20%)
-                if random.random() < 0.35:
-                    events.append((i, f"TEAM DIED - Ammo failed to clear zombies"))
-                    return False, f"Ammo failed to clear zombies at node {node}", resource_usage, events
+                # if random.random() < 0.35:
+                #     events.append((i, f"TEAM DIED - Ammo failed to clear zombies"))
+                #     return False, f"Ammo failed to clear zombies at node {node}", resource_usage, events
                 resource_usage.used['ammo'] += 1
                 resource_usage.effective_uses['ammo'] += 1
                 events.append((i, f"Used ammo successfully against zombies"))
@@ -77,33 +91,33 @@ class PathEvaluator:
                         events.append((i, f"TEAM DIED - Ran out of explosives"))
                         return False, f"Ran out of explosives at edge {edge}", resource_usage, events
                     # 25% chance explosives fail (increased from 10%)
-                    if random.random() < 0.25:
-                        events.append((i, f"TEAM DIED - Explosives failed to clear blockage"))
-                        return False, f"Explosives failed to clear blockage at edge {edge}", resource_usage, events
+                    # if random.random() < 0.25:
+                    #     events.append((i, f"TEAM DIED - Explosives failed to clear blockage"))
+                    #     return False, f"Explosives failed to clear blockage at edge {edge}", resource_usage, events
                     resource_usage.used['explosives'] += 1
                     resource_usage.effective_uses['explosives'] += 1
                     events.append((i, f"Used explosives successfully to clear path"))
                 
-            # Random events that consume resources
-            if random.random() < 0.15:  # 15% chance of unexpected zombie encounter
-                events.append((i, f"Surprise zombie encounter!"))
-                resource_usage.needed['ammo'] += 1
-                if resource_usage.allocated['ammo'] <= resource_usage.used['ammo']:
-                    events.append((i, f"TEAM DIED - No ammo for surprise zombie encounter"))
-                    return False, f"Ran out of ammo during surprise zombie encounter at node {node}", resource_usage, events
-                resource_usage.used['ammo'] += 1
-                resource_usage.effective_uses['ammo'] += 1
-                events.append((i, f"Successfully handled surprise zombie encounter"))
+            # # Random events that consume resources
+            # if random.random() < 0.15:  # 15% chance of unexpected zombie encounter
+            #     events.append((i, f"Surprise zombie encounter!"))
+            #     resource_usage.needed['ammo'] += 1
+            #     if resource_usage.allocated['ammo'] <= resource_usage.used['ammo']:
+            #         events.append((i, f"TEAM DIED - No ammo for surprise zombie encounter"))
+            #         return False, f"Ran out of ammo during surprise zombie encounter at node {node}", resource_usage, events
+            #     resource_usage.used['ammo'] += 1
+            #     resource_usage.effective_uses['ammo'] += 1
+            #     events.append((i, f"Successfully handled surprise zombie encounter"))
                 
-            if random.random() < 0.1:  # 10% chance of radiation leak
-                events.append((i, f"Unexpected radiation leak detected!"))
-                resource_usage.needed['radiation_suits'] += 1
-                if resource_usage.allocated['radiation_suits'] <= resource_usage.used['radiation_suits']:
-                    events.append((i, f"TEAM DIED - No suits for radiation leak"))
-                    return False, f"Ran out of suits during radiation leak at node {node}", resource_usage, events
-                resource_usage.used['radiation_suits'] += 1
-                resource_usage.effective_uses['radiation_suits'] += 1
-                events.append((i, f"Successfully protected against radiation leak"))
+            # if random.random() < 0.1:  # 10% chance of radiation leak
+            #     events.append((i, f"Unexpected radiation leak detected!"))
+            #     resource_usage.needed['radiation_suits'] += 1
+            #     if resource_usage.allocated['radiation_suits'] <= resource_usage.used['radiation_suits']:
+            #         events.append((i, f"TEAM DIED - No suits for radiation leak"))
+            #         return False, f"Ran out of suits during radiation leak at node {node}", resource_usage, events
+            #     resource_usage.used['radiation_suits'] += 1
+            #     resource_usage.effective_uses['radiation_suits'] += 1
+            #     events.append((i, f"Successfully protected against radiation leak"))
             
             if i < len(path) - 1:
                 events.append((i, f"Moving to node {path[i+1]}"))
@@ -113,7 +127,7 @@ class PathEvaluator:
         return True, "Successfully reached extraction point", resource_usage, events
         
     def evaluate(self, path: List[int], resources: Dict[str, int],
-                city: CityGraph, true_state: Dict, max_resources:int=10000) -> SimulationResult:
+                city: CityGraph, true_state: Dict, max_resources:int=0) -> SimulationResult:
         """
         Evaluate a proposed evacuation plan
         
@@ -135,21 +149,30 @@ class PathEvaluator:
         
         # Calculate path length
         path_length = 0
-        for i in range(len(path) - 1):
+        unexisting_edge = False
+        for i in range(len(path) - 2):
             n1, n2 = path[i], path[i+1]
-            path_length += city.graph[n1][n2]['weight']
+            if city.graph.has_edge(n1, n2):
+                path_length += city.graph[n1][n2]['weight']
+            else:
+                # Handle the case where nodes are not connected
+                unexisting_edge = (n1,n2)
             
         # Check if path reaches an extraction point
         reaches_extraction = path[-1] in city.extraction_nodes
         
         # Check resource usage
-        resources_sufficient, failure_reason, resource_usage, events = self._check_resource_usage(path, resources, max_resources)
+        resources_sufficient, failure_reason, resource_usage, events = self._check_resource_usage(path, resources, max_resources, unexisting_edge=unexisting_edge)
             
         # Determine success and failure reason
-        success = reaches_extraction and resources_sufficient
-        if not success and not failure_reason:
+        success = (reaches_extraction) and ((resources_sufficient) and (not unexisting_edge))
+        
+        if not reaches_extraction:
             failure_reason = "Path does not reach extraction point"
-            events.append((len(path), "FAILED - Path does not reach extraction point"))
+            events[-1] = (len(path), f"FAILED - Path does not reach extraction point ended at node {path[-1]}")
+            for rt, amount in resources.items(): # Loose all the reources
+                        resource_usage.allocated[rt] = amount
+                        resource_usage.used[rt] = amount
                 
         # Calculate time taken (affected by obstacles and resource usage)
         base_time = path_length

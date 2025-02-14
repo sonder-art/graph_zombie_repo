@@ -7,6 +7,7 @@ from hidden.generation.city_gen import CityGenerator
 from hidden.generation.obstacles_gen import TrueStateGenerator
 from hidden.generation.proxy_gen import ProxyGenerator
 from hidden.evaluation.evaluator import PathEvaluator
+import copy
 
 class Simulator:
     """Interface for running evacuation simulations"""
@@ -54,6 +55,7 @@ class Simulator:
         true_state = self.true_state_gen.generate(city)
         proxy_data = self.proxy_gen.generate(city, true_state)
         pass_city = city.copy()
+        real_max_resources = max_resources
         # 3. Get policy decision
         policy_result = policy.plan_evacuation(pass_city, proxy_data, max_resources)
         
@@ -62,7 +64,8 @@ class Simulator:
             path=policy_result.path,
             resources=policy_result.resources,
             city=city,
-            true_state=true_state
+            true_state=true_state,
+            max_resources=real_max_resources
         )
         
         # Save data if experiment is active

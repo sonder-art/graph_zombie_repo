@@ -49,8 +49,6 @@ class EvacuationPolicy:
                                   weight='weight')
         except nx.NetworkXNoPath:
             path = [city.starting_node]
-        print(f'Path {path} \n')
-        max_resources = 10000
         # Placeholder resource allocation
         resources = {
             'explosives': max_resources // 3,

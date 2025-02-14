@@ -112,7 +112,7 @@ class DataManager:
                 }
             },
             "events": {
-                "chronological": sim_result.events if hasattr(sim_result, 'events') else [],
+                "chronological": sim_result.get('events',[]),#sim_result.events if hasattr(sim_result, 'events') else [],
                 "resource_summary": {
                     rt: {
                         "allocated": sim_result['resources']['allocated'][rt],
