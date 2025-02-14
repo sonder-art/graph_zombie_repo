@@ -37,3 +37,8 @@ Su algoritmo en `public/tools/simulator.py` recibira 3 datos (variables input):
 3. `max_resources [int]`: Es el numero maximo de recursos que pueden cargar las personas que seran extraidas en esta ciudad. Puede variar, no es fijo.
 ![alt text](image-6.png)  
 
+## Datos Output de tu algoritmo
+Los datos que debe regresar tu algoritmo deben ser 2 estrucutras:
+1. Una lista indicando la suscesion de nodos valida. Por ejemplo: `[5,7,8,2,34,56]` donde el nodo inicial es `5` (debe ser el mismo que indica el problema), un nodo de extraccion es `56`, y  todo nodo sucesivo esta conectado osea de puede pasar al siguiente en la lista por que existe un camino valido.  Si no es valido el nodo inicial, final o alguna conexion tu equipo perdera automaticamente. Puede ocurrir que haya un path valido, pero no tengas los recursos adecuados apra solucionar el evento que pase en el nodo, en cuyo caso tambien perderas.
+2. Un diccionario con un valor valido apra cada recurso (en total tienen que ser menores o iguales al `max_resource`), si es mayor al permitido tu equipo se perdera automaticamente.
+2.1 Estos recursos deben de servirte para solucionar los problemas o eventos que encontraras por los nodos.
