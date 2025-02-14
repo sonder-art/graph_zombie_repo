@@ -16,8 +16,8 @@ class DataManager:
     def start_experiment(self, config: Dict[str, Any] = None) -> str:
         """Start a new experiment and create necessary directories"""
         # Generate experiment ID with timestamp
-        timestamp = datetime.datetime.now().strftime("%Y%m%d")
-        exp_id = f"exp_{timestamp}_{str(uuid.uuid4())[:8]}"
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+        exp_id = f"{timestamp}"
         
         # Create experiment directory structure
         exp_dir = os.path.join(self.policy_dir, "experiments", exp_id)
