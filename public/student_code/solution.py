@@ -33,6 +33,13 @@ class EvacuationPolicy:
                        {'explosives': x, 'ammo': y, 'radiation_suits': z}
                        where x + y + z <= max_resources
         """
+        # print(f'City graph: {city.graph} \n')
+        # print(f'City starting_node: {city.starting_node}\n')
+        # print(f'City extraction_nodes: {city.extraction_nodes}\n')
+        # print(f'Proxy node_data: {proxy_data.node_data} \n \n')
+        # print(f'Proxy edge_data: {proxy_data.edge_data} \n \n')
+        # print(f'Max Resources: {max_resources} \n \n')
+        
         # TODO: Implement your solution here
         # This is just a placeholder that returns a simple path to the first extraction point
         target = city.extraction_nodes[0]
@@ -42,6 +49,7 @@ class EvacuationPolicy:
                                   weight='weight')
         except nx.NetworkXNoPath:
             path = [city.starting_node]
+        print(f'Path {path} \n')
         
         # Placeholder resource allocation
         resources = {
