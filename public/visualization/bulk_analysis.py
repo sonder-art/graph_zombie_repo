@@ -30,337 +30,113 @@ def save_plot(plt, name: str, policy_name: str, experiment_id: str):
                 bbox_inches='tight', dpi=300)
     plt.close()
 
-def plot_success_rates(results: Dict, policy_name: str, experiment_id: str):
-    """
-    Visualize success rates across different city sizes.
-    Shows how mission success varies with complexity of the environment.
-    """
-    plt.figure(figsize=(12, 6))
-    sizes = sorted(results['by_size'].keys())
-    success_rates = [results['by_size'][size]['success_rate'] * 100 for size in sizes]
+def plot_success_rates(core_metrics: Dict, policy_name: str, experiment_id: str):
+    """Plot success rates by city size"""
+    plt.figure(figsize=(10, 6))
     
-    plt.bar(sizes, success_rates, alpha=0.7, color='skyblue')
-    plt.axhline(y=results['success_rate'] * 100, color='r', linestyle='--',
-                label=f'Overall: {results["success_rate"]*100:.1f}%')
+    sizes = sorted(core_metrics['by_city_size'].keys())
+    success_rates = [
+        core_metrics['by_city_size'][size]['success_rate'] * 100 
+        for size in sizes
+    ]
+    
+    plt.bar(sizes, success_rates, alpha=0.7)
+    plt.axhline(
+        y=core_metrics['overall_performance']['success_rate'] * 100,
+        color='r', linestyle='--',
+        label=f'Overall: {core_metrics["overall_performance"]["success_rate"]*100:.1f}%'
+    )
     
     plt.xlabel('City Size (Nodes)')
     plt.ylabel('Success Rate (%)')
-    plt.title('Mission Success by City Size\n' + 
-             'Analysis of how environment complexity affects mission outcomes')
+    plt.title('Mission Success by City Size\nSuccess rate variation across different city sizes')
     plt.legend()
     
     save_plot(plt, "success_rates", policy_name, experiment_id)
 
-def plot_resource_efficiency(results: Dict, policy_name: str, experiment_id: str):
-    """
-    Analyze resource usage patterns.
-    Shows how effectively different resources are being utilized.
-    """
+def plot_resource_efficiency(resource_metrics: Dict, policy_name: str, experiment_id: str):
+    """Plot resource allocation and usage patterns"""
     plt.figure(figsize=(12, 6))
-    resource_types = list(results['resource_metrics'].keys())
+    
+    resource_types = list(resource_metrics['overall'].keys())
     x = range(len(resource_types))
     
-    carried = [metrics['avg_allocated'] for metrics in results['resource_metrics'].values()]
-    remaining = [metrics['avg_remaining'] for metrics in results['resource_metrics'].values()]
-    used = [c - r for c, r in zip(carried, remaining)]
+    allocated = [metrics['avg_allocated'] for metrics in resource_metrics['overall'].values()]
+    used = [metrics['avg_used'] for metrics in resource_metrics['overall'].values()]
     
-    plt.bar(x, carried, alpha=0.4, label='Carried', color='lightblue')
+    plt.bar(x, allocated, alpha=0.4, label='Allocated', color='lightblue')
     plt.bar(x, used, alpha=0.8, label='Used', color='blue')
     
     plt.xticks(x, [rt.replace('_', ' ').title() for rt in resource_types])
     plt.ylabel('Average Amount')
-    plt.title('Resource Usage Analysis\n' +
-             'Comparison of resource allocation vs actual usage')
+    plt.title('Resource Usage Analysis\nComparison of resource allocation vs actual usage')
     
     # Add efficiency percentages
-    for i, (c, u) in enumerate(zip(carried, used)):
-        if c > 0:
-            efficiency = (u / c) * 100
-            plt.text(i, c, f'{efficiency:.1f}%\nefficient', 
+    for i, (a, u) in enumerate(zip(allocated, used)):
+        if a > 0:
+            efficiency = (u / a) * 100
+            plt.text(i, a, f'{efficiency:.1f}%\nefficient', 
                     ha='center', va='bottom')
     
     plt.legend()
-    
     save_plot(plt, "resource_efficiency", policy_name, experiment_id)
 
-def plot_proxy_success_correlation(results: Dict, policy_name: str, experiment_id: str):
-    """
-    Analyze how different proxy indicators correlate with mission performance metrics.
-    Shows which environmental factors are most predictive of mission outcomes.
-    """
+def plot_environmental_impact(env_metrics: Dict, policy_name: str, experiment_id: str):
+    """Plot environmental factors and their impact"""
     plt.figure(figsize=(15, 10))
     
-    # Collect proxy data and performance metrics by city size
-    proxy_correlations = {
-        'time': {},      # Correlations with mission time
-        'efficiency': {} # Correlations with resource efficiency
+    # Create correlation heatmap
+    node_correlations = env_metrics['correlations']['nodes']
+    edge_correlations = env_metrics['correlations']['edges']
+    
+    all_correlations = {
+        **{f"Node: {k}": v for k, v in node_correlations.items()},
+        **{f"Edge: {k}": v for k, v in edge_correlations.items()}
     }
     
-    # Process node indicators
-    for indicator in results['proxy_data']['nodes'].keys():
-        proxy_correlations['time'][f"node_{indicator}"] = []
-        proxy_correlations['efficiency'][f"node_{indicator}"] = []
-        
-        for size, size_data in results['by_size'].items():
-            if indicator in size_data['proxy_data']['nodes']:
-                # Correlation with time
-                proxy_correlations['time'][f"node_{indicator}"].append({
-                    'value': size_data['proxy_data']['nodes'][indicator],
-                    'metric': size_data['avg_time']
-                })
-                
-                # Calculate resource efficiency for this size
-                total_used = sum(
-                    metrics['avg_used']
-                    for metrics in size_data['resource_metrics'].values()
-                )
-                total_allocated = sum(
-                    metrics['avg_allocated']
-                    for metrics in size_data['resource_metrics'].values()
-                )
-                efficiency = total_used / total_allocated if total_allocated > 0 else 0
-                
-                proxy_correlations['efficiency'][f"node_{indicator}"].append({
-                    'value': size_data['proxy_data']['nodes'][indicator],
-                    'metric': efficiency
-                })
+    # Sort by absolute correlation value
+    sorted_items = sorted(
+        all_correlations.items(),
+        key=lambda x: abs(x[1]),
+        reverse=True
+    )
     
-    # Process edge indicators
-    for indicator in results['proxy_data']['edges'].keys():
-        proxy_correlations['time'][f"edge_{indicator}"] = []
-        proxy_correlations['efficiency'][f"edge_{indicator}"] = []
-        
-        for size, size_data in results['by_size'].items():
-            if indicator in size_data['proxy_data']['edges']:
-                # Correlation with time
-                proxy_correlations['time'][f"edge_{indicator}"].append({
-                    'value': size_data['proxy_data']['edges'][indicator],
-                    'metric': size_data['avg_time']
-                })
-                
-                # Calculate resource efficiency
-                total_used = sum(
-                    metrics['avg_used']
-                    for metrics in size_data['resource_metrics'].values()
-                )
-                total_allocated = sum(
-                    metrics['avg_allocated']
-                    for metrics in size_data['resource_metrics'].values()
-                )
-                efficiency = total_used / total_allocated if total_allocated > 0 else 0
-                
-                proxy_correlations['efficiency'][f"edge_{indicator}"].append({
-                    'value': size_data['proxy_data']['edges'][indicator],
-                    'metric': efficiency
-                })
+    labels = [item[0] for item in sorted_items]
+    values = [item[1] for item in sorted_items]
     
-    # Calculate correlations
-    correlations = {
-        'time': {},
-        'efficiency': {}
-    }
-    
-    for metric_type in ['time', 'efficiency']:
-        for indicator, data in proxy_correlations[metric_type].items():
-            if data:  # Only process if we have data
-                values = [d['value'] for d in data]
-                metrics = [d['metric'] for d in data]
-                if any(values) and any(metrics):  # Ensure non-zero data
-                    correlation = np.corrcoef(values, metrics)[0, 1]
-                    if not np.isnan(correlation):
-                        correlations[metric_type][indicator] = correlation
-    
-    # Plot correlations
-    plt.subplot(2, 1, 1)
-    plot_correlation_bars(correlations['time'], 'Mission Time',
-                         'How environmental factors affect mission duration')
-    
-    plt.subplot(2, 1, 2)
-    plot_correlation_bars(correlations['efficiency'], 'Resource Efficiency',
-                         'How environmental factors affect resource utilization')
-    
-    plt.tight_layout()
-    save_plot(plt, "proxy_correlations", policy_name, experiment_id)
-
-def plot_correlation_bars(correlations: Dict, metric_name: str, subtitle: str):
-    """Helper function to plot correlation bars"""
-    indicators = list(correlations.keys())
-    correlation_values = list(correlations.values())
-    
-    plt.barh(range(len(indicators)), correlation_values, alpha=0.7)
-    plt.yticks(range(len(indicators)), 
-               [ind.replace('_', ' ').replace('node ', '').replace('edge ', '').title() 
-                for ind in indicators])
-    
-    plt.axvline(x=0, color='gray', linestyle='--', alpha=0.5)
-    plt.xlabel(f'Correlation with {metric_name}')
-    plt.title(f'Environmental Indicators vs {metric_name}\n{subtitle}')
+    plt.barh(range(len(values)), values)
+    plt.yticks(range(len(labels)), labels)
+    plt.xlabel('Correlation with Mission Success')
+    plt.title('Environmental Impact Analysis\nCorrelation between environmental factors and mission success')
     
     # Add correlation values
-    for i, corr in enumerate(correlation_values):
-        plt.text(corr, i, f' {corr:.2f}', 
-                va='center', ha='left' if corr >= 0 else 'right')
+    for i, v in enumerate(values):
+        plt.text(v, i, f'{v:.2f}', va='center')
+    
+    save_plot(plt, "environmental_impact", policy_name, experiment_id)
 
-def plot_proxy_resource_patterns(results: Dict, policy_name: str, experiment_id: str):
-    """
-    Analyze relationship between proxy indicators and resource usage.
-    Shows how environmental conditions influence resource allocation.
-    """
-    plt.figure(figsize=(15, 8))
-    
-    # Collect all indicators and resources
-    node_indicators = list(results['proxy_data']['nodes'].keys())
-    edge_indicators = list(results['proxy_data']['edges'].keys())
-    all_indicators = [(ind, 'node') for ind in node_indicators] + [(ind, 'edge') for ind in edge_indicators]
-    
-    resource_types = list(results['resource_metrics'].keys())
-    
-    # Create correlation matrix
-    correlation_matrix = np.zeros((len(all_indicators), len(resource_types)))
-    
-    # Calculate correlations between indicators and resource usage
-    for i, (indicator, ind_type) in enumerate(all_indicators):
-        for j, resource in enumerate(resource_types):
-            indicator_values = []
-            resource_values = []
-            
-            for size, size_data in results['by_size'].items():
-                # Get indicator value
-                if ind_type == 'node' and indicator in size_data['proxy_data']['nodes']:
-                    ind_val = size_data['proxy_data']['nodes'][indicator]
-                elif ind_type == 'edge' and indicator in size_data['proxy_data']['edges']:
-                    ind_val = size_data['proxy_data']['edges'][indicator]
-                else:
-                    continue
-                
-                # Get resource usage
-                if resource in size_data['resource_metrics']:
-                    res_val = size_data['resource_metrics'][resource]['avg_used']
-                else:
-                    continue
-                
-                indicator_values.append(ind_val)
-                resource_values.append(res_val)
-            
-            # Calculate correlation if we have data
-            if indicator_values and resource_values:
-                correlation = np.corrcoef(indicator_values, resource_values)[0, 1]
-                if not np.isnan(correlation):
-                    correlation_matrix[i, j] = correlation
-    
-    # Plot correlation matrix
-    plt.imshow(correlation_matrix, aspect='auto', cmap='RdYlBu')
-    plt.colorbar(label='Correlation Strength')
-    
-    # Create labels
-    indicator_labels = [
-        f"{'Node' if t == 'node' else 'Edge'}: {ind.replace('_', ' ').title()}"
-        for ind, t in all_indicators
-    ]
-    
-    plt.yticks(range(len(all_indicators)), indicator_labels)
-    plt.xticks(range(len(resource_types)), 
-               [rt.replace('_', ' ').title() for rt in resource_types],
-               rotation=45)
-    
-    plt.title('Environmental Indicators vs Resource Usage\n' +
-             'How different factors influence resource requirements')
-    
-    # Add correlation values
-    for i in range(len(all_indicators)):
-        for j in range(len(resource_types)):
-            plt.text(j, i, f'{correlation_matrix[i, j]:.2f}',
-                    ha='center', va='center')
-    
-    plt.tight_layout()
-    save_plot(plt, "proxy_resource_patterns", policy_name, experiment_id)
-
-def plot_time_distance_relationship(results: Dict, policy_name: str, experiment_id: str):
-    """
-    Analyze relationship between mission time and path length.
-    Shows how mission duration correlates with distance traveled.
-    """
-    plt.figure(figsize=(12, 6))
-    sizes = sorted(results['by_size'].keys())
-    times = [results['by_size'][size]['avg_time'] for size in sizes]
-    distances = [results['by_size'][size]['avg_path_length'] for size in sizes]
-    success_rates = [results['by_size'][size]['success_rate'] for size in sizes]
-    
-    scatter = plt.scatter(distances, times, c=success_rates, 
-                         cmap='RdYlBu', s=100, alpha=0.6)
-    plt.colorbar(scatter, label='Success Rate')
-    
-    # Add trend line if we have enough data points
-    if len(distances) > 1:
-        z = np.polyfit(distances, times, 1)
-        p = np.poly1d(z)
-        plt.plot(distances, p(distances), "r--", alpha=0.8, 
-                label=f'Trend: {z[0]:.2f}x + {z[1]:.2f}')
-    
-    plt.xlabel('Path Length')
-    plt.ylabel('Time Taken (seconds)')
-    plt.title('Mission Time vs Path Length Analysis\n' +
-             'Impact of route length on mission duration')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    
-    save_plot(plt, "time_distance", policy_name, experiment_id)
-
-def plot_resource_impact(results: Dict, policy_name: str, experiment_id: str):
-    """
-    Analyze how resource allocation impacts mission success.
-    Shows the relationship between resource usage and outcomes.
-    """
-    plt.figure(figsize=(12, 6))
-    resource_types = list(results['resource_metrics'].keys())
-    
-    # Calculate usage ratios and success correlation
-    usage_ratios = []
-    for rt in resource_types:
-        metrics = results['resource_metrics'][rt]
-        if metrics['avg_allocated'] > 0:
-            ratio = (metrics['avg_allocated'] - metrics['avg_remaining']) / metrics['avg_allocated']
-            usage_ratios.append(ratio * 100)
-        else:
-            usage_ratios.append(0)
-    
-    # Create grouped bar chart
-    x = range(len(resource_types))
-    plt.bar(x, usage_ratios, alpha=0.7)
-    
-    plt.xticks(x, [rt.replace('_', ' ').title() for rt in resource_types])
-    plt.ylabel('Usage Ratio (%)')
-    plt.title('Resource Usage Impact Analysis\n' +
-             'How different resources contribute to mission execution')
-    
-    # Add percentage labels
-    for i, ratio in enumerate(usage_ratios):
-        plt.text(i, ratio, f'{ratio:.1f}%', ha='center', va='bottom')
-    
-    save_plot(plt, "resource_impact", policy_name, experiment_id)
-
-def plot_metrics_summary(results: Dict, policy_name: str, experiment_id: str):
-    """
-    Create a simple table visualization of key metrics.
-    Shows core performance indicators in an easy-to-read format.
-    """
-    plt.figure(figsize=(10, 6))
+def plot_performance_metrics(core_metrics: Dict, policy_name: str, experiment_id: str):
+    """Plot overall performance metrics"""
+    plt.figure(figsize=(12, 8))
     
     # Prepare data for the table
+    performance = core_metrics['overall_performance']
     data = [
-        ['Success Rate', f"{results['success_rate']*100:.1f}%"],
-        ['Average Time', f"{results['avg_time']:.2f} units"],
-        ['Average Path Length', f"{results['avg_path_length']:.2f} units"]
+        ['Success Rate', f"{performance['success_rate']*100:.1f}%"],
+        ['Average Time', f"{performance['avg_time']:.2f} units"],
+        ['Average Path Length', f"{performance['avg_path_length']:.2f} units"],
+        ['Resources Allocated', f"{performance['resources_allocated']:.1f} units"],
+        ['Resources Used', f"{performance['resources_used']:.1f} units"],
+        ['Resource Efficiency', f"{performance['resource_efficiency']*100:.1f}%"]
     ]
     
-    # Add resource metrics
-    for resource_type, metrics in results['resource_metrics'].items():
-        allocated = metrics['avg_allocated']
-        used = allocated - metrics['avg_remaining']
-        efficiency = (used / allocated * 100) if allocated > 0 else 0
+    # Add city size specific data
+    for size, metrics in sorted(core_metrics['by_city_size'].items()):
         data.append([
-            f"{resource_type.replace('_', ' ').title()} Efficiency",
-            f"{efficiency:.1f}% ({used:.1f}/{allocated:.1f})"
+            f'City Size {size}',
+            f"{metrics['success_rate']*100:.1f}% success, "
+            f"{metrics['avg_time']:.1f} time, "
+            f"{metrics['resource_efficiency']*100:.1f}% resource eff."
         ])
 
     # Create table
@@ -380,143 +156,242 @@ def plot_metrics_summary(results: Dict, policy_name: str, experiment_id: str):
                       loc='right')
     
     ax.add_table(table)
-    plt.title('Mission Performance Summary\nKey Metrics Overview', pad=20)
+    plt.title('Mission Performance Summary\nKey Performance Indicators', pad=20)
     
-    save_plot(plt, "metrics_summary", policy_name, experiment_id)
+    save_plot(plt, "performance_metrics", policy_name, experiment_id)
 
-def plot_metric_correlations(results: Dict, policy_name: str, experiment_id: str):
-    """
-    Create a correlation matrix between key performance metrics and environmental factors.
-    Shows relationships between mission outcomes and various indicators.
-    """
-    plt.figure(figsize=(12, 10))
+def plot_resource_impact(resource_metrics: Dict, policy_name: str, experiment_id: str):
+    """Plot resource impact on mission success"""
+    plt.figure(figsize=(12, 6))
     
-    # Prepare correlation data
-    metrics_by_size = {
-        size: {
-            'success_rate': data['success_rate'],
-            'avg_time': data['avg_time'],
-            'avg_path_length': data['avg_path_length'],
-            'resource_efficiency': sum(
-                m['avg_used'] / m['avg_allocated']
-                if m['avg_allocated'] > 0 else 0
-                for m in data['resource_metrics'].values()
-            ) / len(data['resource_metrics'])
-        }
-        for size, data in results['by_size'].items()
+    # Extract data
+    resource_types = list(resource_metrics['overall'].keys())
+    efficiencies = [
+        metrics['efficiency'] * 100 
+        for metrics in resource_metrics['overall'].values()
+    ]
+    
+    # Create bar chart
+    x = range(len(resource_types))
+    plt.bar(x, efficiencies, alpha=0.7)
+    
+    plt.xticks(x, [rt.replace('_', ' ').title() for rt in resource_types])
+    plt.ylabel('Resource Efficiency (%)')
+    plt.title('Resource Impact Analysis\nEfficiency of different resource types')
+    
+    # Add percentage labels
+    for i, eff in enumerate(efficiencies):
+        plt.text(i, eff, f'{eff:.1f}%', ha='center', va='bottom')
+    
+    # Add most used/needed resource annotations
+    plt.figtext(
+        0.02, 0.02,
+        f"Most Used: {resource_metrics['analysis']['most_used_resource'].replace('_', ' ').title()}\n"
+        f"Most Needed: {resource_metrics['analysis']['most_needed_resource'].replace('_', ' ').title()}",
+        fontsize=8
+    )
+    
+    save_plot(plt, "resource_impact", policy_name, experiment_id)
+
+def plot_environmental_correlations(env_metrics: Dict, policy_name: str, experiment_id: str):
+    """Plot correlations between environmental factors"""
+    plt.figure(figsize=(15, 10))
+    
+    # Combine node and edge indicators
+    indicators = {
+        **{f"Node: {k}": v for k, v in env_metrics['overall']['nodes'].items()},
+        **{f"Edge: {k}": v for k, v in env_metrics['overall']['edges'].items()}
     }
     
-    # Add environmental indicators
-    for size, data in results['by_size'].items():
-        # Add node indicators
-        for indicator, value in data['proxy_data']['nodes'].items():
-            metrics_by_size[size][f'node_{indicator}'] = value
-        
-        # Add edge indicators
-        for indicator, value in data['proxy_data']['edges'].items():
-            metrics_by_size[size][f'edge_{indicator}'] = value
+    # Create correlation matrix
+    labels = list(indicators.keys())
+    n = len(labels)
+    correlation_matrix = np.zeros((n, n))
     
-    # Convert to DataFrame
-    df = pd.DataFrame.from_dict(metrics_by_size, orient='index')
+    def safe_correlation(x, y):
+        """Safely compute correlation between two variables"""
+        if len(x) < 2 or len(y) < 2:  # Need at least 2 points
+            return 0.0
+            
+        # Check for zero variance
+        if np.all(np.array(x) == x[0]) or np.all(np.array(y) == y[0]):
+            return 0.0
+            
+        try:
+            # Use np.nan_to_num to handle NaN values
+            corr = np.corrcoef(x, y)[0, 1]
+            return np.nan_to_num(corr, nan=0.0)
+        except:
+            return 0.0
     
-    # Calculate correlation matrix
-    core_metrics = ['success_rate', 'avg_time', 'avg_path_length', 'resource_efficiency']
-    correlation_matrix = []
-    labels_y = []
+    # Compute correlations with proper error handling
+    for i, label1 in enumerate(labels):
+        for j, label2 in enumerate(labels):
+            if i == j:
+                correlation_matrix[i, j] = 1.0
+            else:
+                # Get values, ensuring they're lists
+                values1 = [indicators[label1]] if not isinstance(indicators[label1], list) else indicators[label1]
+                values2 = [indicators[label2]] if not isinstance(indicators[label2], list) else indicators[label2]
+                correlation_matrix[i, j] = safe_correlation(values1, values2)
     
-    for metric in core_metrics:
-        correlations = []
-        for col in df.columns:
-            if col not in core_metrics:  # Correlate with environmental indicators
-                corr = df[metric].corr(df[col])
-                if not pd.isna(corr):
-                    correlations.append(corr)
-                    if metric == core_metrics[0]:  # Only add label once
-                        labels_y.append(col.replace('node_', 'Node: ').replace('edge_', 'Edge: ')
-                                     .replace('_', ' ').title())
-    
-        correlation_matrix.append(correlations)
-    
-    # Plot correlation matrix
-    im = plt.imshow(correlation_matrix, aspect='auto', cmap='RdYlBu')
-    plt.colorbar(im, label='Correlation Strength')
+    # Plot heatmap with a symmetric colormap centered at zero
+    plt.imshow(correlation_matrix, cmap='RdBu_r', aspect='auto', vmin=-1, vmax=1)
+    plt.colorbar(label='Correlation Coefficient')
     
     # Add labels
-    plt.yticks(range(len(core_metrics)), 
-              [m.replace('_', ' ').title() for m in core_metrics])
-    plt.xticks(range(len(labels_y)), labels_y, rotation=45, ha='right')
+    plt.xticks(range(n), labels, rotation=45, ha='right')
+    plt.yticks(range(n), labels)
     
-    # Add correlation values
-    for i in range(len(core_metrics)):
-        for j in range(len(labels_y)):
-            text = f'{correlation_matrix[i][j]:.2f}'
-            plt.text(j, i, text, ha='center', va='center')
+    # Add correlation values to the cells
+    for i in range(n):
+        for j in range(n):
+            color = 'black' if abs(correlation_matrix[i, j]) < 0.5 else 'white'
+            plt.text(j, i, f'{correlation_matrix[i, j]:.2f}',
+                    ha='center', va='center', color=color)
     
-    plt.title('Core Metrics vs Environmental Indicators\n' +
-              'Correlation Analysis of Mission Performance Factors')
+    plt.title('Environmental Factor Correlations\nRelationships between different environmental indicators')
+    plt.tight_layout()
+    
+    save_plot(plt, "environmental_correlations", policy_name, experiment_id)
+
+def plot_key_metrics_distribution(results: Dict, policy_name: str, experiment_id: str):
+    """Plot distribution of key performance metrics"""
+    plt.figure(figsize=(15, 10))
+    
+    # Extract raw data
+    raw_data = results['raw_data']['runs']
+    
+    # Create subplots
+    gs = plt.GridSpec(2, 3)
+    
+    # 1. Success Rate Pie Chart
+    ax1 = plt.subplot(gs[0, 0])
+    success_count = sum(1 for r in raw_data if r['success'])
+    failure_count = len(raw_data) - success_count
+    ax1.pie([success_count, failure_count], 
+            labels=['Success', 'Failure'],
+            autopct='%1.1f%%',
+            colors=['lightgreen', 'lightcoral'])
+    ax1.set_title('Mission Outcomes')
+    
+    # 2. Time Distribution
+    ax2 = plt.subplot(gs[0, 1])
+    times = [r['time_taken'] for r in raw_data]
+    ax2.hist(times, bins=min(20, len(times)//2), alpha=0.7)
+    ax2.axvline(np.mean(times), color='r', linestyle='--', 
+                label=f'Mean: {np.mean(times):.2f}')
+    ax2.set_title('Mission Time Distribution')
+    ax2.set_xlabel('Time Units')
+    ax2.legend()
+    
+    # 3. Resource Usage Comparison
+    ax3 = plt.subplot(gs[0, 2])
+    resource_types = list(raw_data[0]['resources']['allocated'].keys())
+    x = np.arange(len(resource_types))
+    width = 0.35
+    
+    allocated = [np.mean([r['resources']['allocated'][rt] for r in raw_data]) 
+                for rt in resource_types]
+    used = [np.mean([r['resources']['used'][rt] for r in raw_data]) 
+            for rt in resource_types]
+    
+    ax3.bar(x - width/2, allocated, width, label='Allocated', alpha=0.7)
+    ax3.bar(x + width/2, used, width, label='Used', alpha=0.7)
+    ax3.set_xticks(x)
+    ax3.set_xticklabels([rt.replace('_', ' ').title() for rt in resource_types])
+    ax3.set_title('Resource Usage')
+    ax3.legend()
+    
+    # 4. Success vs Resources Scatter
+    ax4 = plt.subplot(gs[1, :2])
+    success_allocated = [sum(r['resources']['allocated'].values()) for r in raw_data if r['success']]
+    failure_allocated = [sum(r['resources']['allocated'].values()) for r in raw_data if not r['success']]
+    success_used = [sum(r['resources']['used'].values()) for r in raw_data if r['success']]
+    failure_used = [sum(r['resources']['used'].values()) for r in raw_data if not r['success']]
+    
+    ax4.scatter(success_allocated, success_used, c='green', label='Success', alpha=0.6)
+    ax4.scatter(failure_allocated, failure_used, c='red', label='Failure', alpha=0.6)
+    ax4.plot([0, max(success_allocated + failure_allocated)], 
+             [0, max(success_allocated + failure_allocated)], 
+             'k--', alpha=0.3, label='Perfect Efficiency')
+    ax4.set_xlabel('Resources Allocated')
+    ax4.set_ylabel('Resources Used')
+    ax4.set_title('Resource Efficiency by Mission Outcome')
+    ax4.legend()
+    
+    # 5. Resource Efficiency by City Size
+    ax5 = plt.subplot(gs[1, 2])
+    sizes = sorted(results['raw_data']['by_size'].keys())
+    efficiencies = []
+    
+    for size in sizes:
+        size_runs = results['raw_data']['by_size'][size]
+        total_used = sum(sum(r['resources']['used'].values()) for r in size_runs)
+        total_allocated = sum(sum(r['resources']['allocated'].values()) for r in size_runs)
+        efficiency = total_used / total_allocated if total_allocated > 0 else 0
+        efficiencies.append(efficiency * 100)
+    
+    ax5.plot(sizes, efficiencies, marker='o')
+    ax5.set_xlabel('City Size')
+    ax5.set_ylabel('Overall Resource Efficiency (%)')
+    ax5.set_title('Resource Efficiency vs City Size')
     
     plt.tight_layout()
-    save_plot(plt, "metric_correlations", policy_name, experiment_id)
+    save_plot(plt, "key_metrics", policy_name, experiment_id)
 
 def generate_all_visualizations(results: Dict, policy_name: str, experiment_id: str):
     """Generate and save all visualization types with explanations"""
     print("\nGenerating Visualizations...")
     
+    # Key Metrics Analysis
+    print("\n1. Key Performance Metrics:")
+    plot_key_metrics_distribution(results, policy_name, experiment_id)
+    print("- Shows distribution of core performance indicators")
+    print("- Visualizes relationships between key metrics")
+    print("- Provides overview of mission outcomes")
+    
     # Success Rate Analysis
-    print("\n1. Success Rate Analysis:")
-    plot_success_rates(results, policy_name, experiment_id)
+    print("\n2. Success Rate Analysis:")
+    plot_success_rates(results['core_metrics'], policy_name, experiment_id)
     print("- Shows how mission success varies with city size")
     print("- Helps identify optimal operational scale")
     print("- Highlights potential complexity thresholds")
     
     # Resource Efficiency
-    print("\n2. Resource Efficiency Analysis:")
-    plot_resource_efficiency(results, policy_name, experiment_id)
+    print("\n3. Resource Efficiency Analysis:")
+    plot_resource_efficiency(results['resource_metrics'], policy_name, experiment_id)
     print("- Compares resource allocation vs actual usage")
     print("- Identifies potential over/under-allocation")
     print("- Highlights resource utilization patterns")
     
-    # Proxy Data Correlations
-    print("\n3. Environmental Indicator Analysis:")
-    plot_proxy_success_correlation(results, policy_name, experiment_id)
-    print("- Shows how different factors predict mission outcomes")
+    # Environmental Impact
+    print("\n4. Environmental Impact Analysis:")
+    plot_environmental_impact(results['environmental_metrics'], policy_name, experiment_id)
+    print("- Shows how different factors affect mission outcomes")
     print("- Identifies key environmental indicators")
     print("- Helps in risk assessment and planning")
     
-    # Time-Distance Relationship
-    print("\n4. Time-Distance Analysis:")
-    plot_time_distance_relationship(results, policy_name, experiment_id)
-    print("- Reveals relationship between path length and mission time")
-    print("- Helps in mission duration estimation")
-    print("- Identifies efficiency outliers")
+    # Performance Metrics
+    print("\n5. Performance Metrics Summary:")
+    plot_performance_metrics(results['core_metrics'], policy_name, experiment_id)
+    print("- Provides overview of mission performance")
+    print("- Shows success patterns across different scenarios")
+    print("- Highlights areas for improvement")
     
     # Resource Impact
-    print("\n5. Resource Impact Analysis:")
-    plot_resource_impact(results, policy_name, experiment_id)
+    print("\n6. Resource Impact Analysis:")
+    plot_resource_impact(results['resource_metrics'], policy_name, experiment_id)
     print("- Shows effectiveness of different resources")
     print("- Helps optimize resource allocation")
     print("- Identifies critical resources")
     
-    # Proxy-Resource Patterns
-    print("\n6. Environmental-Resource Patterns:")
-    plot_proxy_resource_patterns(results, policy_name, experiment_id)
-    print("- Shows how environmental factors affect resource needs")
-    print("- Helps predict resource requirements")
-    print("- Identifies key resource drivers")
-    
-    # Metrics Summary
-    print("\n7. Metrics Summary Table:")
-    plot_metrics_summary(results, policy_name, experiment_id)
-    print("- Shows key performance indicators")
-    print("- Provides quick overview of mission outcomes")
-    print("- Highlights resource utilization efficiency")
-    
-    # Metric Correlations
-    print("\n8. Metric Correlations Analysis:")
-    plot_metric_correlations(results, policy_name, experiment_id)
-    print("- Shows relationships between core metrics and environmental factors")
-    print("- Helps identify key performance drivers")
-    print("- Reveals environmental impact on mission success")
+    # Environmental Correlations
+    print("\n7. Environmental Correlations:")
+    plot_environmental_correlations(results['environmental_metrics'], policy_name, experiment_id)
+    print("- Shows relationships between environmental factors")
+    print("- Identifies key success predictors")
+    print("- Helps in mission planning")
     
     vis_path = os.path.join("data/policies", policy_name, "experiments", experiment_id, "visualizations")
     print(f"\nAll visualizations have been saved to '{vis_path}/'")

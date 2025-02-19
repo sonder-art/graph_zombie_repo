@@ -2,6 +2,7 @@ import networkx as nx
 from typing import Dict, List
 
 from public.lib.interfaces import CityGraph, ProxyData, PolicyResult
+from public.student_code.convert_to_df import convert_edge_data_to_df, convert_node_data_to_df
 
 class EvacuationPolicy:
     """
@@ -42,6 +43,13 @@ class EvacuationPolicy:
         
         # TODO: Implement your solution here
         # This is just a placeholder that returns a simple path to the first extraction point
+        
+        proxy_data_nodes_df = convert_node_data_to_df(proxy_data.node_data)
+        proxy_data_edges_df = convert_edge_data_to_df(proxy_data.edge_data)
+        
+        #print(f'\n Node Data: \n {proxy_data_nodes_df}')
+        #print(f'\n Edge Data: \n {proxy_data_edges_df}')
+        
         target = city.extraction_nodes[0]
         
         try:

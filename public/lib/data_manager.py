@@ -22,28 +22,30 @@ class DataManager:
         # Create experiment directory structure
         exp_dir = os.path.join(self.policy_dir, "experiments", exp_id)
         os.makedirs(os.path.join(exp_dir, "cities"), exist_ok=True)
-        os.makedirs(os.path.join(exp_dir, "aggregated"), exist_ok=True)
+        os.makedirs(os.path.join(exp_dir, "visualizations"), exist_ok=True)
         
         # Save experiment metadata
         metadata = {
-            "experiment_id": exp_id,
-            "timestamp": datetime.datetime.now().isoformat(),
-            "configuration": config or {},
-            "results": {
-                "n_simulations": 0,
+            "metadata": {
+                "experiment_id": exp_id,
+                "timestamp": datetime.datetime.now().isoformat(),
+                "configuration": config or {},
+                "total_runs": 0
+            },
+            "overall_performance": {
                 "success_rate": 0.0,
                 "avg_path_length": 0.0,
-                "avg_time": 0.0,
-                "resource_usage": {
-                    "avg_allocated": 0.0,
-                    "avg_used": 0.0,
-                    "avg_needed": 0.0,
-                    "efficiency": 0.0
-                }
+                "avg_time": 0.0
+            },
+            "resource_usage": {
+                "avg_allocated": 0.0,
+                "avg_used": 0.0,
+                "avg_needed": 0.0,
+                "efficiency": 0.0
             }
         }
         
-        with open(os.path.join(exp_dir, "summary.json"), "w") as f:
+        with open(os.path.join(exp_dir, "core_metrics.json"), "w") as f:
             json.dump(metadata, f, indent=4)
             
         self.current_experiment = exp_id
@@ -136,55 +138,36 @@ class DataManager:
             
         summary_file = os.path.join(
             self.policy_dir, "experiments",
-            self.current_experiment, "summary.json"
+            self.current_experiment, "core_metrics.json"
         )
         
         with open(summary_file, "r") as f:
             summary = json.load(f)
             
         # Update running averages
-        current_n = summary["results"]["n_simulations"]
+        current_n = summary["metadata"]["total_runs"]
         new_n = current_n + 1
         
         # Update basic metrics
         for key in ['success_rate', 'avg_path_length', 'avg_time']:
             if key in metrics:
-                current_val = summary["results"][key]
+                current_val = summary["overall_performance"][key]
                 new_val = metrics[key]
-                summary["results"][key] = (
+                summary["overall_performance"][key] = (
                     (current_val * current_n + new_val) / new_n
                 )
         
-        # Update proxy metrics if provided
-        if 'proxy_metrics' in metrics:
-            if 'proxy_metrics' not in summary["results"]:
-                summary["results"]["proxy_metrics"] = {}
-            for key, value in metrics['proxy_metrics'].items():
-                if key not in summary["results"]["proxy_metrics"]:
-                    summary["results"]["proxy_metrics"][key] = 0.0
-                current_val = summary["results"]["proxy_metrics"][key]
-                summary["results"]["proxy_metrics"][key] = (
-                    (current_val * current_n + value) / new_n
-                )
-        
-        # Update resource metrics if provided
-        if 'resource_metrics' in metrics:
-            if 'resource_metrics' not in summary["results"]:
-                summary["results"]["resource_metrics"] = {}
-            for rt, rt_metrics in metrics['resource_metrics'].items():
-                if rt not in summary["results"]["resource_metrics"]:
-                    summary["results"]["resource_metrics"][rt] = {
-                        "avg_allocated": 0.0,
-                        "avg_remaining": 0.0
-                    }
-                for key in ["avg_allocated", "avg_remaining"]:
-                    current_val = summary["results"]["resource_metrics"][rt][key]
-                    new_val = rt_metrics[key]
-                    summary["results"]["resource_metrics"][rt][key] = (
+        # Update resource usage
+        if 'resource_usage' in metrics:
+            for key in ['avg_allocated', 'avg_used', 'avg_needed', 'efficiency']:
+                if key in metrics['resource_usage']:
+                    current_val = summary["resource_usage"][key]
+                    new_val = metrics['resource_usage'][key]
+                    summary["resource_usage"][key] = (
                         (current_val * current_n + new_val) / new_n
                     )
         
-        summary["results"]["n_simulations"] = new_n
+        summary["metadata"]["total_runs"] = new_n
         
         with open(summary_file, "w") as f:
             json.dump(summary, f, indent=4)

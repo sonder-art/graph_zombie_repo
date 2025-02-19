@@ -150,7 +150,7 @@ class PathEvaluator:
         # Calculate path length
         path_length = 0
         unexisting_edge = False
-        for i in range(len(path) - 2):
+        for i in range(len(path) - 1):
             n1, n2 = path[i], path[i+1]
             if city.graph.has_edge(n1, n2):
                 path_length += city.graph[n1][n2]['weight']
