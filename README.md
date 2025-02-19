@@ -10,4 +10,6 @@ La documentacion completa se encuentra en 'docs/'. Tienes que leerla toda.
     4.1 Lee la guia para el tipo de dato `nx.Graph` que se menciona en la guia `docs/03_guia_de_datos`. Esta guia se llama `docs/b_tutorial_nx.md`
 5. Lee la de `docs/04_outputs_metricas.md` que contiene los outputs y metricas de las simulaciones, te explica lo que vez en la carpeta de `data/experiments`. ** En construccion**
 6. Lee la `docs/descripcion_problema.md` para obtener inspiracion.
-7. Entiende corectamente como funcionan el algoritmo, a detalle y analiza los resultados, a aprtir de ahi puedes empezar a mejorarlo.
+7. Lee la guia `docs/04_outputs.md` para entender los outputs de las simulaciones.
+8. Lee la guia para el proxy `docs/05_guia_proxy.md` para entender como se recopilan los datos para la simulacion.
+9. Entiende corectamente como funcionan el algoritmo, a detalle y analiza los resultados, a aprtir de ahi puedes empezar a mejorarlo.
