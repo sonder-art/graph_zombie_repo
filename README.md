@@ -28,8 +28,9 @@ Lee todos la documentación y asegúrate de entender bien los conceptos y cómo 
   1. **Descripción de Políticas**:
      - Explicación detallada de cada estrategia
      - Justificación de decisiones de diseño
-     - Pseudocódigo o diagramas de flujo
-     - Ejemplos de casos específicos
+     - Pseudocódigo o diagramas de flujo (pueden usar mermaid y subir imagenes, o hacerlo a mano y subir las imagenes o fotos)
+     - Analisis de la politica desde la perspectiva de probabilidad de Jaynes y su robot. Cuales son los supuestos de cada modelo, que estan asumiendo.
+     - Analisis de su politica pensando en que es buena y en que es mala.
 
   2. **Análisis de Resultados**:
      - Simulaciones con 100 ciudades (20-50 nodos)
