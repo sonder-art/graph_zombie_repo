@@ -3,11 +3,11 @@ SKIP_CITY_ANALYSIS = True
 POLICY_NAME =  "EvacuationPolicy"
 CONFIG = {
         'node_range': {
-            'min': 5,
-            'max': 5
+            'min': 20,
+            'max': 50
         },
-        'n_runs': 2,  # Total number of cities to simulate
-        'base_seed': 42  # For reproducibility
+        'n_runs': 100,  # Total number of cities to simulate
+        'base_seed': 7354681  # For reproducibility
     }
 
 from public.tools.run_bulk import BulkRunner
