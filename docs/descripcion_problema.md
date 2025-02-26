@@ -4,7 +4,10 @@
 
 Es el año 2025. Un incidente catastrófico en una instalación secreta de investigación ha llevado a una crisis sin precedentes en la ciudad. La combinación de una fuga de radiación y un patógeno experimental ha resultado en un entorno peligroso lleno de zonas radiactivas e individuos infectados que exhiben comportamiento agresivo (coloquialmente referidos como "zombies" por los equipos de evacuación).
 
-Eres parte del Comando Estratégico de Respuesta a Emergencias, encargado de desarrollar protocolos de evacuación para equipos de rescate que operan en este entorno urbano peligroso. Tu misión es crear un sistema basado en IA que pueda guiar a los equipos de rescate a través de la ciudad mientras gestiona sus recursos limitados.
+Eres parte del Comando Estratégico de Respuesta a Emergencias, encargado de desarrollar protocolos de evacuación para equipos de rescate que operan en este entorno urbano peligroso. Tu misión es crear un sistema basado en IA que pueda guiar a las personas a su escape. 
+
+## Descripcion
+Existe una zona segura donde las personas estan resguardadas, la idea es evacuar a la gente poco a poco. Cada refugio conoce su conteo de items que pueden prestar a cada equipo que tiene que escapar. Cada equipo de personas tiene que llegar al punto de escape y llevar los instrumentos necesarios para lograr escapar. En este momento tu enfoque es lograr que escape el primer euipo de personas en muchas ciudades.
 
 ## El Desafío
 
